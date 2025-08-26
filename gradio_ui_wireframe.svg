@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="900" viewBox="0 0 800 900" xmlns="http://www.w3.org/2000/svg">
+  <!-- 전체 배경 -->
+  <rect width="800" height="900" fill="#f8f9fa" stroke="#e0e0e0" stroke-width="2" rx="10"/>
+  
+  <!-- 헤더 영역 -->
+  <rect x="20" y="20" width="760" height="80" fill="#667eea" rx="8"/>
+  <text x="400" y="50" text-anchor="middle" fill="white" font-size="20" font-weight="bold">🤖 AI 데이터 분석 비서</text>
+  <text x="400" y="75" text-anchor="middle" fill="white" font-size="14">자연어로 묻고, AI가 분석하고, 시각화로 답하다</text>
+  
+  <!-- 메인 컨테이너 -->
+  <rect x="20" y="120" width="760" height="760" fill="white" stroke="#e0e0e0" stroke-width="1" rx="8"/>
+  
+  <!-- 채팅 영역 -->
+  <rect x="40" y="140" width="720" height="350" fill="#f8f9fa" stroke="#ddd" stroke-width="1" rx="5"/>
+  <text x="50" y="160" fill="#333" font-size="16" font-weight="bold">💬 대화형 채팅 인터페이스</text>
+  
+  <!-- 사용자 메시지 -->
+  <rect x="60" y="180" width="500" height="40" fill="#e3f2fd" stroke="#2196F3" stroke-width="2" rx="20"/>
+  <text x="80" y="200" fill="#1976D2" font-size="14">👤 사용자: "이번 달 매출이 가장 높은 제품 카테고리는?"</text>
+  
+  <!-- AI 응답 -->
+  <rect x="60" y="240" width="600" height="60" fill="#e8f5e8" stroke="#4CAF50" stroke-width="2" rx="20"/>
+  <text x="80" y="260" fill="#2E7D32" font-size="14">🤖 AI: 분석 결과를 확인했습니다.</text>
+  <text x="80" y="280" fill="#2E7D32" font-size="12">전자제품 카테고리가 3,250만원으로 가장 높습니다.</text>
+  
+  <!-- 차트 영역 -->
+  <rect x="60" y="320" width="660" height="150" fill="#fff3e0" stroke="#FF9800" stroke-width="2" stroke-dasharray="5,5" rx="5"/>
+  <text x="390" y="350" text-anchor="middle" fill="#F57C00" font-size="16" font-weight="bold">📊 인터랙티브 차트 표시 영역</text>
+  
+  <!-- 막대 차트 시뮬레이션 -->
+  <rect x="100" y="370" width="40" height="80" fill="#4CAF50" rx="2"/>
+  <rect x="160" y="390" width="40" height="60" fill="#2196F3" rx="2"/>
+  <rect x="220" y="380" width="40" height="70" fill="#FF9800" rx="2"/>
+  <rect x="280" y="400" width="40" height="50" fill="#9C27B0" rx="2"/>
+  
+  <text x="120" y="470" text-anchor="middle" fill="#666" font-size="10">전자제품</text>
+  <text x="180" y="470" text-anchor="middle" fill="#666" font-size="10">의류</text>
+  <text x="240" y="470" text-anchor="middle" fill="#666" font-size="10">식품</text>
+  <text x="300" y="470" text-anchor="middle" fill="#666" font-size="10">도서</text>
+  
+  <!-- 입력 영역 -->
+  <rect x="40" y="510" width="720" height="60" fill="white" stroke="#ddd" stroke-width="1" rx="5"/>
+  <text x="50" y="530" fill="#333" font-size="14" font-weight="bold">✍️ 질문 입력</text>
+  <rect x="60" y="540" width="580" height="25" fill="#f5f5f5" stroke="#ccc" stroke-width="1" rx="12"/>
+  <text x="70" y="557" fill="#999" font-size="12">여기에 자연어로 질문을 입력하세요...</text>
+  <rect x="660" y="540" width="80" height="25" fill="#4CAF50" rx="12"/>
+  <text x="700" y="557" text-anchor="middle" fill="white" font-size="12" font-weight="bold">전송</text>
+  
+  <!-- 파일 업로드 영역 -->
+  <rect x="40" y="590" width="350" height="270" fill="white" stroke="#ddd" stroke-width="1" rx="5"/>
+  <text x="50" y="610" fill="#333" font-size="14" font-weight="bold">📁 파일 업로드</text>
+  
+  <!-- 드래그 앤 드롭 영역 -->
+  <rect x="60" y="620" width="310" height="100" fill="#fff8e1" stroke="#FF9800" stroke-width="2" stroke-dasharray="8,4" rx="5"/>
+  <text x="215" y="650" text-anchor="middle" fill="#F57C00" font-size="14" font-weight="bold">📂 드래그 앤 드롭</text>
+  <text x="215" y="670" text-anchor="middle" fill="#F57C00" font-size="12">Excel, CSV 파일</text>
+  <text x="215" y="690" text-anchor="middle" fill="#F57C00" font-size="10">(최대 100MB)</text>
+  <text x="215" y="710" text-anchor="middle" fill="#F57C00" font-size="10">또는 클릭하여 파일 선택</text>
+  
+  <!-- 업로드된 파일 목록 -->
+  <text x="60" y="745" fill="#333" font-size="12" font-weight="bold">업로드된 파일:</text>
+  <rect x="60" y="750" width="200" height="20" fill="#e8f5e8" stroke="#4CAF50" stroke-width="1" rx="3"/>
+  <text x="70" y="763" fill="#2E7D32" font-size="10">📊 sales_data_2024.xlsx</text>
+  <rect x="270" y="750" width="40" height="20" fill="#f44336" rx="3"/>
+  <text x="290" y="763" text-anchor="middle" fill="white" font-size="10">삭제</text>
+  
+  <!-- 설정 패널 -->
+  <rect x="410" y="590" width="350" height="270" fill="white" stroke="#ddd" stroke-width="1" rx="5"/>
+  <text x="420" y="610" fill="#333" font-size="14" font-weight="bold">⚙️ 설정 패널</text>
+  
+  <!-- DB 연결 설정 -->
+  <text x="430" y="635" fill="#666" font-size="12">🗄️ 데이터베이스 연결</text>
+  <rect x="430" y="640" width="200" height="20" fill="#f5f5f5" stroke="#ccc" stroke-width="1" rx="3"/>
+  <text x="440" y="653" fill="#999" font-size="10">PostgreSQL://localhost:5432</text>
+  <rect x="640" y="640" width="60" height="20" fill="#2196F3" rx="3"/>
+  <text x="670" y="653" text-anchor="middle" fill="white" font-size="10">연결</text>
+  
+  <!-- 언어 설정 -->
+  <text x="430" y="680" fill="#666" font-size="12">🌐 언어 설정</text>
+  <rect x="430" y="685" width="100" height="20" fill="#f5f5f5" stroke="#ccc" stroke-width="1" rx="3"/>
+  <text x="480" y="698" text-anchor="middle" fill="#333" font-size="10">한국어 ▼</text>
+  
+  <!-- 테마 설정 -->
+  <text x="430" y="720" fill="#666" font-size="12">🎨 테마 설정</text>
+  <rect x="430" y="725" width="80" height="20" fill="#f5f5f5" stroke="#ccc" stroke-width="1" rx="3"/>
+  <text x="470" y="738" text-anchor="middle" fill="#333" font-size="10">라이트 ▼</text>
+  
+  <!-- 차트 기본값 -->
+  <text x="430" y="760" fill="#666" font-size="12">📊 차트 기본값</text>
+  <rect x="430" y="765" width="120" height="20" fill="#f5f5f5" stroke="#ccc" stroke-width="1" rx="3"/>
+  <text x="490" y="778" text-anchor="middle" fill="#333" font-size="10">자동 선택 ▼</text>
+  
+  <!-- API 상태 표시 -->
+  <text x="430" y="800" fill="#666" font-size="12">🔌 API 상태</text>
+  <circle cx="450" cy="815" r="5" fill="#4CAF50"/>
+  <text x="465" y="820" fill="#2E7D32" font-size="10">OpenAI API 연결됨</text>
+  
+  <circle cx="450" cy="835" r="5" fill="#4CAF50"/>
+  <text x="465" y="840" fill="#2E7D32" font-size="10">데이터베이스 연결됨</text>
+  
+  <!-- 범례 -->
+  <text x="50" y="890" fill="#666" font-size="10" font-weight="bold">AI 데이터 분석 비서 - Gradio UI 와이어프레임 v1.0</text>
+  <text x="650" y="890" fill="#666" font-size="10">800x900px | SVG Format</text>
+</svg>

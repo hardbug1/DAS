@@ -1,0 +1,75 @@
+# AI 데이터 분석 비서 - Git 무시 파일
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 가상환경
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 로그 파일
+*.log
+logs/
+
+# 데이터베이스
+*.db
+*.sqlite3
+
+# 업로드된 파일
+uploads/
+temp/
+cache/
+
+# 설정 파일 (민감한 정보)
+.env
+config.local.py
+
+# 테스트
+.coverage
+.pytest_cache/
+htmlcov/
+
+# 시스템 파일
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# 임시 파일
+*.tmp
+*.temp
