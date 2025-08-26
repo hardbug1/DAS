@@ -8,6 +8,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, Foreig
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime, date
+from typing import Dict, List, Any
 import structlog
 
 from app.config.database import Base
@@ -297,3 +298,137 @@ class DatabaseSchemaInfo:
         - 주문 상세: orders JOIN order_items ON orders.id = order_items.order_id
         - 제품 판매량: products JOIN order_items ON products.id = order_items.product_id
         """
+
+
+class DatabaseSchemaInfo:
+    """데이터베이스 스키마 정보 제공 클래스"""
+    
+    def __init__(self):
+        self.engine = engine
+    
+    def get_table_info(self) -> Dict[str, Dict[str, Any]]:
+        """테이블 정보 반환"""
+        return {
+            'companies': {
+                'description': '회사 정보 테이블',
+                'columns': {
+                    'id': '회사 ID (Primary Key)',
+                    'name': '회사명',
+                    'industry': '업종',
+                    'country': '국가',
+                    'founded_date': '설립일',
+                    'description': '회사 설명'
+                }
+            },
+            'customers': {
+                'description': '고객 정보 테이블',
+                'columns': {
+                    'id': '고객 ID (Primary Key)',
+                    'name': '고객명',
+                    'email': '이메일',
+                    'phone': '전화번호',
+                    'age': '나이',
+                    'gender': '성별',
+                    'city': '거주 도시',
+                    'registration_date': '가입일',
+                    'is_active': '활성 상태',
+                    'total_spent': '총 구매액'
+                }
+            },
+            'products': {
+                'description': '제품 정보 테이블',
+                'columns': {
+                    'id': '제품 ID (Primary Key)',
+                    'name': '제품명',
+                    'category': '카테고리',
+                    'price': '가격',
+                    'stock_quantity': '재고량',
+                    'company_id': '제조회사 ID (Foreign Key)',
+                    'description': '제품 설명'
+                }
+            },
+            'orders': {
+                'description': '주문 정보 테이블',
+                'columns': {
+                    'id': '주문 ID (Primary Key)',
+                    'customer_id': '고객 ID (Foreign Key)',
+                    'order_date': '주문일',
+                    'total_amount': '총 주문금액',
+                    'status': '주문 상태',
+                    'shipping_address': '배송 주소'
+                }
+            },
+            'order_items': {
+                'description': '주문 상세 항목 테이블',
+                'columns': {
+                    'id': '주문 항목 ID (Primary Key)',
+                    'order_id': '주문 ID (Foreign Key)',
+                    'product_id': '제품 ID (Foreign Key)',
+                    'quantity': '수량',
+                    'unit_price': '단가',
+                    'total_price': '총 가격'
+                }
+            },
+            'sales': {
+                'description': '매출 기록 테이블',
+                'columns': {
+                    'id': '매출 ID (Primary Key)',
+                    'sale_date': '매출 날짜',
+                    'total_amount': '매출 금액',
+                    'order_count': '주문 건수',
+                    'average_order_value': '평균 주문가치'
+                }
+            }
+        }
+    
+    def get_schema_for_llm(self) -> str:
+        """LLM을 위한 스키마 정보 문자열"""
+        table_info = self.get_table_info()
+        schema_text = "데이터베이스 스키마 정보:\n\n"
+        
+        for table_name, info in table_info.items():
+            schema_text += f"테이블: {table_name}\n"
+            schema_text += f"설명: {info['description']}\n"
+            schema_text += "컬럼:\n"
+            for col_name, col_desc in info['columns'].items():
+                schema_text += f"  - {col_name}: {col_desc}\n"
+            schema_text += "\n"
+        
+        return schema_text
+    
+    def get_relationships_info(self) -> str:
+        """테이블 관계 정보"""
+        return """
+테이블 관계:
+- companies (1) ← (N) products (company_id)
+- customers (1) ← (N) orders (customer_id)  
+- orders (1) ← (N) order_items (order_id)
+- products (1) ← (N) order_items (product_id)
+- 매출은 일별로 집계된 데이터
+
+주요 JOIN 패턴:
+- 매출 분석: sales (일별 집계 데이터)
+- 제품 분석: products ⟵ order_items ⟵ orders
+- 고객 구매 분석: customers ⟵ orders ⟵ order_items ⟵ products
+"""
+    
+    def get_sample_queries(self) -> List[Dict[str, str]]:
+        """샘플 쿼리 목록"""
+        return [
+            {
+                'description': '월별 총 매출',
+                'sql': 'SELECT EXTRACT(MONTH FROM sale_date) as month, SUM(total_amount) as total_sales FROM sales GROUP BY EXTRACT(MONTH FROM sale_date) ORDER BY month'
+            },
+            {
+                'description': '카테고리별 제품 수',
+                'sql': 'SELECT category, COUNT(*) as product_count FROM products GROUP BY category ORDER BY product_count DESC'
+            },
+            {
+                'description': '고객별 총 구매액',
+                'sql': 'SELECT c.name, SUM(o.total_amount) as total_spent FROM customers c JOIN orders o ON c.id = o.customer_id GROUP BY c.id, c.name ORDER BY total_spent DESC LIMIT 10'
+            },
+            {
+                'description': '지역별 고객 수',
+                'sql': 'SELECT city, COUNT(*) as customer_count FROM customers GROUP BY city ORDER BY customer_count DESC'
+            }
+        ]

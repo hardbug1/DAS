@@ -92,6 +92,46 @@ SQL 쿼리:
             template=template
         )
     
+    async def execute_advanced_query(self, question: str) -> Dict[str, Any]:
+        """
+        고급 자연어 SQL 질의 실행 (향상된 파싱 및 최적화 포함)
+        """
+        try:
+            # 고급 SQL 서비스 import (circular import 방지)
+            from app.services.advanced_sql_service import advanced_sql_service
+            
+            # 고급 SQL 생성
+            advanced_result = advanced_sql_service.generate_advanced_sql(question)
+            
+            if advanced_result['success']:
+                sql_query = advanced_result['sql_query']
+                
+                # 생성된 SQL 실행
+                execution_result = await self._execute_extracted_sql(sql_query)
+                
+                return {
+                    'success': True,
+                    'data': {
+                        'answer': advanced_result['explanation'],
+                        'table_data': execution_result,
+                        'type': 'advanced_query',
+                        'optimization': advanced_result['optimization'],
+                        'complexity_score': advanced_result['complexity_score']
+                    },
+                    'sql': sql_query,
+                    'execution_time': 0,  # 별도 측정 필요
+                    'question': question,
+                    'advanced_analysis': advanced_result
+                }
+            else:
+                # 고급 분석 실패시 기본 에이전트로 폴백
+                return await self.execute_natural_language_query(question)
+                
+        except Exception as e:
+            logger.error("고급 SQL 질의 실행 실패", error=str(e))
+            # 오류 시 기본 방법으로 폴백
+            return await self.execute_natural_language_query(question)
+    
     async def execute_natural_language_query(self, question: str) -> Dict[str, Any]:
         """
         자연어 질문을 SQL로 변환하여 실행

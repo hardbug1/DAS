@@ -14,6 +14,7 @@ from datetime import datetime
 from app.services.sql_query_service import sql_query_service
 from app.core.database_schema import DatabaseSchemaInfo
 from app.ui.interactions import notification_manager, progress_tracker
+from app.services.visualization_service import visualization_service
 
 logger = structlog.get_logger()
 
@@ -114,6 +115,18 @@ class SQLInterface:
                         visible=False,
                         wrap=True,
                         max_rows=20
+                    )
+                    
+                    # 시각화 차트 (새로 추가)
+                    components['result_chart'] = gr.Plot(
+                        label="📈 데이터 시각화",
+                        visible=False
+                    )
+                    
+                    # 분석 인사이트 (새로 추가)
+                    components['analysis_insights'] = gr.HTML(
+                        label="🧠 분석 인사이트",
+                        visible=False
                     )
             
             # 질의 기록
@@ -242,7 +255,7 @@ class SQLInterface:
         </div>
         """
     
-    async def execute_natural_language_query(self, question: str) -> Tuple[str, str, Any, bool, bool]:
+    async def execute_natural_language_query(self, question: str) -> Tuple[str, str, Any, bool, bool, Any, bool, str, bool]:
         """자연어 질의 실행"""
         if not question.strip():
             return (
@@ -250,7 +263,11 @@ class SQLInterface:
                 "",
                 None,
                 False,
-                False
+                False,
+                None,  # chart
+                False,  # chart visible
+                "",    # insights
+                False   # insights visible
             )
         
         try:
@@ -264,8 +281,14 @@ class SQLInterface:
             
             logger.info("자연어 SQL 질의 시작", question=question)
             
-            # SQL 서비스 호출
-            result = await sql_query_service.execute_natural_language_query(question)
+            # 고급 SQL 서비스 호출 (우선 시도)
+            try:
+                result = await sql_query_service.execute_advanced_query(question)
+                is_advanced = True
+            except Exception:
+                # 고급 서비스 실패 시 기본 서비스로 폴백
+                result = await sql_query_service.execute_natural_language_query(question)
+                is_advanced = False
             
             if result["success"]:
                 # 성공 결과 포맷팅
@@ -279,6 +302,30 @@ class SQLInterface:
                     if table_data and "data" in table_data:
                         table_data = table_data["data"]
                 
+                # 시각화 생성
+                chart = None
+                insights_html = ""
+                chart_visible = False
+                insights_visible = False
+                
+                if table_data and len(table_data) > 0:
+                    try:
+                        viz_result = visualization_service.create_visualization(
+                            {"data": table_data},
+                            query_intent=result.get("advanced_analysis", {}).get("parsed_intent", {}).get("intent", "general")
+                        )
+                        
+                        if viz_result['success']:
+                            chart = viz_result['chart']
+                            chart_visible = True
+                            
+                            # 인사이트 HTML 생성
+                            insights_html = self._format_insights(viz_result)
+                            insights_visible = True
+                            
+                    except Exception as e:
+                        logger.warning("시각화 생성 실패", error=str(e))
+                
                 # 질의 기록 저장
                 self._add_to_history(question, result)
                 
@@ -287,7 +334,11 @@ class SQLInterface:
                     executed_sql,
                     table_data,
                     True,  # executed_sql visible
-                    bool(table_data)  # dataframe visible
+                    bool(table_data),  # dataframe visible
+                    chart,  # chart
+                    chart_visible,  # chart visible
+                    insights_html,  # insights
+                    insights_visible   # insights visible
                 )
             else:
                 # 오류 결과 포맷팅
@@ -297,7 +348,11 @@ class SQLInterface:
                     "",
                     None,
                     False,
-                    False
+                    False,
+                    None,  # chart
+                    False,  # chart visible
+                    "",    # insights
+                    False   # insights visible
                 )
         
         except Exception as e:
@@ -315,7 +370,7 @@ class SQLInterface:
                 <p>질의 실행 중 오류가 발생했습니다: {str(e)}</p>
             </div>
             """
-            return (error_html, "", None, False, False)
+            return (error_html, "", None, False, False, None, False, "", False)
     
     async def execute_direct_sql(self, sql_query: str) -> Tuple[str, str, Any, bool, bool]:
         """직접 SQL 실행"""
@@ -482,6 +537,66 @@ class SQLInterface:
             </div>
         </div>
         """
+    
+    def _format_insights(self, viz_result: Dict[str, Any]) -> str:
+        """시각화 인사이트를 HTML로 포맷팅"""
+        insights = viz_result.get('insights', [])
+        chart_type = viz_result.get('chart_type', 'unknown')
+        selection_reason = viz_result.get('selection_reason', '')
+        data_summary = viz_result.get('data_summary', {})
+        
+        html = f"""
+        <div style="
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+        ">
+            <h3 style="margin: 0 0 15px 0; color: #495057;">🧠 분석 인사이트</h3>
+            
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #6c757d; margin: 0 0 8px 0;">📊 차트 정보</h4>
+                <p style="margin: 0; font-size: 14px;">
+                    <strong>차트 유형:</strong> {chart_type.title()}<br>
+                    <strong>선택 이유:</strong> {selection_reason}
+                </p>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: #6c757d; margin: 0 0 8px 0;">📈 주요 인사이트</h4>
+                <ul style="margin: 0; padding-left: 20px; font-size: 14px;">
+        """
+        
+        for insight in insights:
+            html += f"<li>{insight}</li>"
+        
+        html += """
+                </ul>
+            </div>
+        """
+        
+        if data_summary:
+            html += f"""
+            <div>
+                <h4 style="color: #6c757d; margin: 0 0 8px 0;">📋 데이터 요약</h4>
+                <div style="
+                    background: white;
+                    padding: 10px;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    color: #6c757d;
+                ">
+                    데이터 크기: {data_summary.get('total_rows', 0)}행 × {data_summary.get('total_columns', 0)}열 |
+                    숫자 컬럼: {data_summary.get('numeric_columns', 0)}개 |
+                    텍스트 컬럼: {data_summary.get('categorical_columns', 0)}개 |
+                    메모리 사용량: {data_summary.get('memory_usage', 'N/A')}
+                </div>
+            </div>
+            """
+        
+        html += "</div>"
+        return html
     
     def _add_to_history(self, question: str, result: Dict[str, Any]):
         """질의 기록에 추가"""

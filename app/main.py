@@ -140,7 +140,11 @@ def _setup_event_handlers(components: dict):
                 components['executed_sql'],
                 components['result_dataframe'],
                 components['executed_sql'],  # visibility
-                components['result_dataframe']  # visibility
+                components['result_dataframe'],  # visibility
+                components['result_chart'],  # chart
+                components['result_chart'],  # chart visibility
+                components['analysis_insights'],  # insights
+                components['analysis_insights']  # insights visibility
             ]
         )
     
