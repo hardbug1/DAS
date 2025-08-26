@@ -9,8 +9,10 @@ from typing import List, Tuple, Any, Optional
 import random
 import time
 import structlog
+import asyncio
 from datetime import datetime
 from app.ui.interactions import notification_manager, progress_tracker, animation_effects
+from app.services.ai_chat_service import ai_chat_service
 
 logger = structlog.get_logger()
 
@@ -43,11 +45,20 @@ class ChatHandler:
         history = history or []
         history.append((message, None))
         
-        # 타이핑 표시 (실제로는 바로 응답이 나타남)
-        # time.sleep(0.5)  # 실제 서비스에서는 주석 해제
-        
-        # 데모 응답 생성
-        response = self._generate_demo_response(message)
+        try:
+            # 실제 AI 서비스 호출 시도
+            response, success = asyncio.run(ai_chat_service.send_message(message, history[:-1]))
+            
+            if success:
+                logger.info("AI 서비스 응답 성공", response_length=len(response))
+            else:
+                logger.warning("AI 서비스 대체 응답 사용", message=message)
+            
+        except Exception as e:
+            logger.error("AI 서비스 호출 실패, 데모 응답 사용", error=str(e))
+            # AI 서비스 실패시 데모 응답 사용
+            response = self._generate_demo_response(message)
+            success = False
         
         # 히스토리 업데이트 (AI 응답 추가)
         history[-1] = (message, response)
@@ -56,16 +67,28 @@ class ChatHandler:
         self.conversation_history.append({
             "user_message": message,
             "ai_response": response,
+            "ai_service_used": success,
             "timestamp": datetime.now().isoformat()
         })
         
-        logger.info("AI 응답 생성", response_length=len(response), history_count=len(history))
+        logger.info("채팅 응답 완료", 
+                   response_length=len(response), 
+                   history_count=len(history),
+                   ai_service_used=success)
         
         return history, ""
     
     def clear_chat(self) -> Tuple[List, str]:
         """채팅 초기화"""
         self.conversation_history.clear()
+        
+        # AI 서비스 대화 기록도 초기화
+        try:
+            ai_chat_service.clear_conversation()
+            logger.info("AI 서비스 대화 기록 초기화")
+        except Exception as e:
+            logger.warning("AI 서비스 초기화 실패", error=str(e))
+        
         logger.info("채팅 히스토리 초기화")
         return [], ""
     
