@@ -13,6 +13,7 @@ from datetime import datetime
 from app.core.langchain_config import langchain_manager, PromptTemplates, ChatConfiguration
 from app.config.settings import settings
 from app.utils.openai_utils import validator, usage_tracker, get_token_counter
+from app.core.error_handler import error_handler, user_error_reporter
 
 logger = structlog.get_logger()
 
@@ -85,7 +86,12 @@ class AIChatService:
             
         except Exception as e:
             logger.error("AI 응답 생성 실패", error=str(e))
-            return self._get_error_response(str(e)), False
+            
+            # 통합 에러 처리
+            app_error = error_handler.handle_error(e, "AI 응답 생성")
+            error_response = user_error_reporter.generate_error_report_html(app_error)
+            
+            return error_response, False
     
     def _detect_conversation_type(self, message: str) -> str:
         """대화 타입 감지"""

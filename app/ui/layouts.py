@@ -12,6 +12,7 @@ from app.ui.interactions import quick_actions, keyboard_shortcuts
 from app.ui.themes import theme_manager, animation_css
 from app.ui.responsive import responsive_design, accessibility_features, device_detection
 from app.ui.ai_status import ai_status_panel, ai_settings_panel, conversation_analytics
+from app.ui.user_guide import user_guide, tutorial_creator
 
 
 def create_main_layout() -> Tuple[gr.Blocks, Dict[str, Any]]:
@@ -254,6 +255,28 @@ def create_main_layout() -> Tuple[gr.Blocks, Dict[str, Any]]:
                 
                 # 대화 분석 패널
                 components['conversation_analytics'] = conversation_analytics.create_analytics_panel()
+        
+        # 사용자 가이드 및 도움말
+        with gr.Accordion("📚 사용자 가이드", open=False):
+            with gr.Tabs():
+                with gr.Tab("🚀 빠른 시작"):
+                    user_guide.create_welcome_guide()
+                    user_guide.create_quick_start_guide()
+                
+                with gr.Tab("✨ 기능 소개"):
+                    user_guide.create_feature_overview()
+                
+                with gr.Tab("💡 사용 팁"):
+                    user_guide.create_tips_and_tricks()
+                
+                with gr.Tab("💬 예시 대화"):
+                    user_guide.create_example_conversations()
+                
+                with gr.Tab("🔧 문제 해결"):
+                    user_guide.create_troubleshooting_guide()
+                
+                with gr.Tab("🎓 튜토리얼"):
+                    tutorial_creator.create_interactive_tutorial()
         
         # 키보드 단축키 가이드
         keyboard_shortcuts.create_shortcuts_guide()
