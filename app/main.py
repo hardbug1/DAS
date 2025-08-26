@@ -9,10 +9,8 @@ import structlog
 from app.config.settings import settings
 from app.config.logging import setup_logging
 from app.config.database import test_database_connection, create_tables
-from app.ui.components import (
-    create_header, create_status_panel, create_progress_panel,
-    create_feature_preview, create_demo_chatbot, create_demo_response
-)
+from app.ui.layouts import create_main_layout
+from app.ui.handlers import chat_handler, file_handler, settings_handler
 
 # 로깅 설정
 setup_logging()
@@ -39,121 +37,83 @@ def initialize_app():
 def create_app() -> gr.Blocks:
     """Gradio 애플리케이션 생성"""
     
-    # 커스텀 CSS
-    custom_css = """
-    .gradio-container {
-        max-width: 1200px !important;
-        margin: 0 auto;
-    }
+    # 새로운 레이아웃 시스템 사용
+    app, components = create_main_layout()
     
-    .gr-button-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        border: none !important;
-        color: white !important;
-        font-weight: 600 !important;
-    }
-    
-    .gr-button-primary:hover {
-        transform: translateY(-1px) !important;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
-    }
-    
-    .gr-textbox {
-        border-radius: 8px !important;
-    }
-    
-    .gr-panel {
-        border-radius: 12px !important;
-        border: 1px solid #e0e0e0 !important;
-    }
-    """
-    
-    with gr.Blocks(
-        title=settings.app_name,
-        theme=gr.themes.Soft(
-            primary_hue="blue",
-            secondary_hue="purple",
-            neutral_hue="gray"
-        ),
-        css=custom_css
-    ) as app:
-        
-        # 헤더
-        create_header()
-        
-        # 메인 컨텐츠
-        with gr.Row():
-            with gr.Column(scale=2):
-                # 채팅 인터페이스
-                chatbot, msg = create_demo_chatbot()
-                
-                with gr.Row():
-                    send_btn = gr.Button("💬 전송", variant="primary", scale=1)
-                    clear_btn = gr.Button("🗑️ 대화 초기화", variant="secondary", scale=1)
-                
-                # 이벤트 핸들러
-                def clear_chat():
-                    return [], ""
-                
-                send_btn.click(create_demo_response, [msg, chatbot], [chatbot, msg])
-                msg.submit(create_demo_response, [msg, chatbot], [chatbot, msg])
-                clear_btn.click(clear_chat, outputs=[chatbot, msg])
-                
-            with gr.Column(scale=1):
-                # 상태 및 정보 패널
-                create_status_panel()
-                create_progress_panel()
-        
-        # 기능 미리보기
-        create_feature_preview()
-        
-        # 개발 정보
-        with gr.Accordion("🛠️ 개발자 정보", open=False):
-            gr.Markdown(f"""
-            ### 📋 개발 환경 정보
-            
-            **애플리케이션**
-            - 이름: {settings.app_name}
-            - 버전: {settings.app_version}
-            - 환경: {'개발 모드' if settings.debug else '프로덕션 모드'}
-            - 포트: {settings.gradio_server_port}
-            
-            **기술 스택**
-            - Frontend: Gradio 4.0+
-            - Backend: Python 3.11+
-            - Database: PostgreSQL/SQLite
-            - AI: LangChain + OpenAI GPT-4
-            
-            **개발 진행률**
-            - Week 0: 개발 환경 구축 (90% 완료)
-            - Week 1: UI 구현 (예정)
-            - Week 2: AI 연동 (예정)
-            
-            **문서**
-            - [📋 PRD](./PRD_LLM_Data_Analysis_Service.md)
-            - [🏗️ 설계 문서](./System_Design_Document.md)
-            - [✅ 개발 체크리스트](./Development_Checklist.md)
-            """)
-        
-        # 푸터
-        gr.HTML("""
-        <div style="
-            text-align: center; 
-            padding: 20px; 
-            margin-top: 30px; 
-            border-top: 1px solid #e0e0e0;
-            color: #6c757d;
-            font-size: 0.9em;
-        ">
-            <p style="margin: 0;">
-                🤖 <strong>AI 데이터 분석 비서</strong> | 
-                개발 중 | 
-                <em>"데이터의 힘을 모든 사람에게"</em> 🌟
-            </p>
-        </div>
-        """)
+    # 이벤트 핸들러 연결
+    _setup_event_handlers(components)
     
     return app
+
+
+def _setup_event_handlers(components: dict):
+    """이벤트 핸들러 설정"""
+    
+    # 채팅 관련 이벤트
+    if 'send_button' in components and 'message_input' in components and 'chatbot' in components:
+        # 전송 버튼 클릭
+        components['send_button'].click(
+            fn=chat_handler.send_message,
+            inputs=[components['message_input'], components['chatbot']],
+            outputs=[components['chatbot'], components['message_input']]
+        )
+        
+        # Enter 키로 전송
+        components['message_input'].submit(
+            fn=chat_handler.send_message,
+            inputs=[components['message_input'], components['chatbot']],
+            outputs=[components['chatbot'], components['message_input']]
+        )
+        
+        # 대화 초기화
+        if 'clear_button' in components:
+            components['clear_button'].click(
+                fn=chat_handler.clear_chat,
+                outputs=[components['chatbot'], components['message_input']]
+            )
+    
+    # 파일 업로드 이벤트
+    if 'file_upload' in components and 'uploaded_files_display' in components:
+        components['file_upload'].upload(
+            fn=file_handler.handle_file_upload,
+            inputs=[components['file_upload']],
+            outputs=[components['uploaded_files_display']]
+        )
+    
+    # 설정 관련 이벤트
+    if 'db_test_button' in components:
+        components['db_test_button'].click(
+            fn=settings_handler.test_database_connection,
+            inputs=[
+                components.get('db_type'),
+                components.get('db_host'),
+                components.get('db_port'),
+                components.get('db_name')
+            ],
+            outputs=[]  # 결과를 알림으로 표시 (추후 구현)
+        )
+    
+    # 설정 변경 이벤트
+    if 'language_select' in components:
+        components['language_select'].change(
+            fn=settings_handler.update_language,
+            inputs=[components['language_select']],
+            outputs=[]
+        )
+    
+    if 'theme_select' in components:
+        components['theme_select'].change(
+            fn=settings_handler.update_theme,
+            inputs=[components['theme_select']],
+            outputs=[]
+        )
+    
+    if 'chart_default' in components:
+        components['chart_default'].change(
+            fn=settings_handler.update_chart_default,
+            inputs=[components['chart_default']],
+            outputs=[]
+        )
 
 
 def main():
