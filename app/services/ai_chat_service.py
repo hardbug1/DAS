@@ -12,6 +12,7 @@ from datetime import datetime
 
 from app.core.langchain_config import langchain_manager, PromptTemplates, ChatConfiguration
 from app.config.settings import settings
+from app.utils.openai_utils import validator, usage_tracker, get_token_counter
 
 logger = structlog.get_logger()
 
@@ -165,6 +166,24 @@ class AIChatService:
     async def _generate_response(self, llm, messages: List) -> str:
         """AI 응답 생성"""
         try:
+            # 토큰 수 계산 (요청 전)
+            token_counter = get_token_counter(settings.openai_model)
+            
+            # 메시지를 문자열로 변환하여 토큰 계산
+            message_texts = []
+            for msg in messages:
+                if hasattr(msg, 'content'):
+                    message_texts.append(msg.content)
+            
+            input_tokens = sum(token_counter.count_tokens(text) for text in message_texts)
+            
+            # 토큰 제한 확인
+            from app.utils.openai_utils import ModelInfo
+            is_valid, token_message = ModelInfo.validate_token_limit(settings.openai_model, input_tokens)
+            
+            if not is_valid:
+                raise Exception(token_message)
+            
             # 비동기 호출
             response = await asyncio.wait_for(
                 asyncio.to_thread(llm.invoke, messages),
@@ -172,6 +191,15 @@ class AIChatService:
             )
             
             if response and hasattr(response, 'content'):
+                # 응답 토큰 수 계산 및 사용량 추적
+                output_tokens = token_counter.count_tokens(response.content)
+                usage_tracker.track_usage(settings.openai_model, input_tokens, output_tokens)
+                
+                logger.info("AI 응답 생성 완료",
+                           input_tokens=input_tokens,
+                           output_tokens=output_tokens,
+                           model=settings.openai_model)
+                
                 return response.content
             else:
                 raise ValueError("빈 응답 받음")
@@ -275,13 +303,22 @@ class AIChatService:
             return False, "AI 서비스가 사용 불가능합니다."
         
         try:
-            success = self.langchain_manager.test_connection()
+            # OpenAI 유틸리티를 사용한 더 정확한 테스트
+            success, message = validator.test_api_connection(
+                settings.openai_api_key,
+                settings.openai_model
+            )
+            
             if success:
-                return True, "AI 연결 테스트 성공!"
+                logger.info("AI 연결 테스트 성공")
+                return True, f"✅ {message}"
             else:
-                return False, "AI 연결 테스트 실패"
+                logger.warning("AI 연결 테스트 실패", reason=message)
+                return False, f"❌ {message}"
+                
         except Exception as e:
-            return False, f"연결 테스트 오류: {str(e)}"
+            logger.error("AI 연결 테스트 중 오류", error=str(e))
+            return False, f"❌ 연결 테스트 오류: {str(e)}"
 
 
 # 전역 AI 채팅 서비스 인스턴스

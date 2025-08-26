@@ -11,6 +11,7 @@ from app.config.logging import setup_logging
 from app.config.database import test_database_connection, create_tables
 from app.ui.layouts import create_main_layout
 from app.ui.handlers import chat_handler, file_handler, settings_handler
+from app.ui.ai_status import ai_status_panel, ai_settings_panel
 
 # 로깅 설정
 setup_logging()
@@ -113,6 +114,19 @@ def _setup_event_handlers(components: dict):
             fn=settings_handler.update_chart_default,
             inputs=[components['chart_default']],
             outputs=[]
+        )
+    
+    # AI 설정 이벤트
+    if 'test_connection_btn' in components and 'test_result' in components:
+        components['test_connection_btn'].click(
+            fn=ai_settings_panel.test_ai_connection,
+            outputs=[components['test_result']]
+        )
+    
+    if 'clear_memory_btn' in components and 'test_result' in components:
+        components['clear_memory_btn'].click(
+            fn=ai_settings_panel.clear_ai_memory,
+            outputs=[components['test_result']]
         )
 
 

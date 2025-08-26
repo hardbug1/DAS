@@ -11,6 +11,7 @@ from app.ui.components import create_header
 from app.ui.interactions import quick_actions, keyboard_shortcuts
 from app.ui.themes import theme_manager, animation_css
 from app.ui.responsive import responsive_design, accessibility_features, device_detection
+from app.ui.ai_status import ai_status_panel, ai_settings_panel, conversation_analytics
 
 
 def create_main_layout() -> Tuple[gr.Blocks, Dict[str, Any]]:
@@ -244,8 +245,15 @@ def create_main_layout() -> Tuple[gr.Blocks, Dict[str, Any]]:
             
             # 오른쪽: 사이드바 (1/3) 
             with gr.Column(scale=1, elem_classes="sidebar-column"):
+                # AI 상태 패널
+                components['ai_status'] = ai_status_panel.create_status_display()
+                
+                # 기존 섹션들
                 components.update(_create_file_upload_section())
                 components.update(_create_settings_section())
+                
+                # 대화 분석 패널
+                components['conversation_analytics'] = conversation_analytics.create_analytics_panel()
         
         # 키보드 단축키 가이드
         keyboard_shortcuts.create_shortcuts_guide()
@@ -417,8 +425,12 @@ def _create_settings_section() -> Dict[str, Any]:
                     size="sm"
                 )
             
+            # AI 설정
+            ai_settings_components = ai_settings_panel.create_settings_panel()
+            components.update(ai_settings_components)
+            
             # 애플리케이션 설정
-            with gr.Accordion("🎨 애플리케이션 설정", open=True):
+            with gr.Accordion("🎨 애플리케이션 설정", open=False):
                 components['language_select'] = gr.Dropdown(
                     choices=["한국어", "English"],
                     value="한국어",
