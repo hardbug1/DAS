@@ -10,6 +10,7 @@ import random
 import time
 import structlog
 from datetime import datetime
+from app.ui.interactions import notification_manager, progress_tracker, animation_effects
 
 logger = structlog.get_logger()
 
@@ -38,15 +39,18 @@ class ChatHandler:
         # 로깅
         logger.info("사용자 메시지 수신", message=message, timestamp=datetime.now().isoformat())
         
-        # 타이핑 시뮬레이션을 위한 지연
-        time.sleep(0.5)
+        # 히스토리에 사용자 메시지 먼저 추가
+        history = history or []
+        history.append((message, None))
+        
+        # 타이핑 표시 (실제로는 바로 응답이 나타남)
+        # time.sleep(0.5)  # 실제 서비스에서는 주석 해제
         
         # 데모 응답 생성
         response = self._generate_demo_response(message)
         
-        # 히스토리 업데이트
-        history = history or []
-        history.append((message, response))
+        # 히스토리 업데이트 (AI 응답 추가)
+        history[-1] = (message, response)
         
         # 대화 히스토리 저장
         self.conversation_history.append({
@@ -217,14 +221,21 @@ class SettingsHandler:
         """데이터베이스 연결 테스트 (데모)"""
         logger.info("DB 연결 테스트", db_type=db_type, host=host, port=port, db_name=db_name)
         
-        # 시뮬레이션 지연
-        time.sleep(1)
+        # 진행률 추적 시작
+        steps = ["연결 설정 확인", "네트워크 테스트", "인증 확인", "데이터베이스 접근 테스트"]
+        progress_html = progress_tracker.start_progress(steps)
+        
+        # 단계별 진행 시뮬레이션
+        for i in range(len(steps)):
+            time.sleep(0.3)  # 각 단계별 지연
+            progress_tracker.update_progress(i + 1, f"{steps[i]} 완료")
         
         if not host or not db_name:
-            return "❌ 연결 실패: 호스트와 데이터베이스명을 입력해주세요."
+            return notification_manager.show_error("호스트와 데이터베이스명을 입력해주세요.")
         
-        # 데모 응답
-        return f"✅ 연결 성공! {db_type} ({host}:{port}/{db_name})에 연결되었습니다. (데모 모드)"
+        # 성공 알림
+        success_msg = f"{db_type} ({host}:{port}/{db_name})에 연결되었습니다. (데모 모드)"
+        return notification_manager.show_success(success_msg)
     
     def update_language(self, language: str) -> str:
         """언어 설정 업데이트"""

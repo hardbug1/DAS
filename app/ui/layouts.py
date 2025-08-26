@@ -8,6 +8,8 @@ import gradio as gr
 from typing import Tuple, Dict, Any
 from app.config.settings import settings
 from app.ui.components import create_header
+from app.ui.interactions import quick_actions, keyboard_shortcuts
+from app.ui.themes import theme_manager, animation_css
 
 
 def create_main_layout() -> Tuple[gr.Blocks, Dict[str, Any]]:
@@ -22,14 +24,16 @@ def create_main_layout() -> Tuple[gr.Blocks, Dict[str, Any]]:
     - 설정 패널 (우측 하단)
     """
     
-    # 커스텀 CSS (와이어프레임 기반)
-    custom_css = """
+    # 커스텀 CSS (와이어프레임 기반 + 테마 + 애니메이션)
+    custom_css = f"""
+    {animation_css.get_animations()}
+    
     /* 전체 컨테이너 */
-    .gradio-container {
+    .gradio-container {{
         max-width: 1200px !important;
         margin: 0 auto;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
+    }}
     
     /* 헤더 스타일링 */
     .header-container {
@@ -209,13 +213,12 @@ def create_main_layout() -> Tuple[gr.Blocks, Dict[str, Any]]:
     
     with gr.Blocks(
         title=settings.app_name,
-        theme=gr.themes.Soft(
-            primary_hue="blue",
-            secondary_hue="purple", 
-            neutral_hue="gray",
-            font=gr.themes.GoogleFont("Inter")
-        ),
-        css=custom_css
+        theme=theme_manager.get_theme("light"),
+        css=custom_css,
+        head="""
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="AI 데이터 분석 비서 - 자연어로 묻고, AI가 분석하고, 시각화로 답하다">
+        """
     ) as app:
         
         # 헤더
@@ -232,6 +235,9 @@ def create_main_layout() -> Tuple[gr.Blocks, Dict[str, Any]]:
             with gr.Column(scale=1, elem_classes="sidebar-column"):
                 components.update(_create_file_upload_section())
                 components.update(_create_settings_section())
+        
+        # 키보드 단축키 가이드
+        keyboard_shortcuts.create_shortcuts_guide()
         
         # 푸터
         components['footer'] = _create_footer()
@@ -296,22 +302,7 @@ def _create_input_section() -> Dict[str, Any]:
                 )
         
         # 빠른 예시 질문들
-        gr.HTML("""
-        <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px;">
-            <strong>💡 예시 질문:</strong>
-            <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
-                <span style="background: white; padding: 4px 12px; border-radius: 15px; font-size: 12px; border: 1px solid #e0e0e0; cursor: pointer;" onclick="document.querySelector('.message-input textarea').value='지난 달 매출 현황은?'">
-                    지난 달 매출 현황은?
-                </span>
-                <span style="background: white; padding: 4px 12px; border-radius: 15px; font-size: 12px; border: 1px solid #e0e0e0; cursor: pointer;" onclick="document.querySelector('.message-input textarea').value='제품별 판매량을 분석해줘'">
-                    제품별 판매량을 분석해줘
-                </span>
-                <span style="background: white; padding: 4px 12px; border-radius: 15px; font-size: 12px; border: 1px solid #e0e0e0; cursor: pointer;" onclick="document.querySelector('.message-input textarea').value='고객 연령대별 구매 패턴은?'">
-                    고객 연령대별 구매 패턴은?
-                </span>
-            </div>
-        </div>
-        """)
+        quick_actions.create_example_buttons()
     
     return components
 
@@ -349,6 +340,9 @@ def _create_file_upload_section() -> Dict[str, Any]:
                 </div>
             </div>
             """)
+            
+            # 파일 템플릿 다운로드
+            quick_actions.create_file_templates()
             
             # 업로드된 파일 목록 표시 영역
             components['uploaded_files_display'] = gr.HTML("""
