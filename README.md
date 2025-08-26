@@ -51,11 +51,33 @@ cp env.example .env
 ### 3. 애플리케이션 실행
 
 ```bash
-# 개발 서버 실행
+# 방법 1: 간단한 실행 (권장)
+python run.py
+
+# 방법 2: 직접 실행
 python app/main.py
+
+# 방법 3: Makefile 사용
+make run
 ```
 
 브라우저에서 `http://localhost:7860` 접속
+
+### 4. 개발 도구 (선택사항)
+
+```bash
+# 데이터베이스 설정
+make setup-db
+
+# 테스트 실행
+make test
+
+# 코드 품질 검사
+make lint
+
+# 전체 개발 환경 설정
+make dev-setup
+```
 
 ## 📁 프로젝트 구조
 
