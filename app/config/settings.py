@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     gradio_server_port: int = Field(default=7860, env="GRADIO_SERVER_PORT")
     gradio_share: bool = Field(default=False, env="GRADIO_SHARE")
     
+    # 접근성 및 UI 설정
+    enable_accessibility_features: bool = Field(default=True, env="ENABLE_ACCESSIBILITY_FEATURES")
+    default_theme: str = Field(default="light", env="DEFAULT_THEME")  # light, dark, blue, green
+    enable_animations: bool = Field(default=True, env="ENABLE_ANIMATIONS")
+    max_excel_file_size_mb: int = Field(default=100, env="MAX_EXCEL_FILE_SIZE_MB")
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

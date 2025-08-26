@@ -10,6 +10,7 @@ from app.config.settings import settings
 from app.ui.components import create_header
 from app.ui.interactions import quick_actions, keyboard_shortcuts
 from app.ui.themes import theme_manager, animation_css
+from app.ui.responsive import responsive_design, accessibility_features, device_detection
 
 
 def create_main_layout() -> Tuple[gr.Blocks, Dict[str, Any]]:
@@ -24,9 +25,11 @@ def create_main_layout() -> Tuple[gr.Blocks, Dict[str, Any]]:
     - 설정 패널 (우측 하단)
     """
     
-    # 커스텀 CSS (와이어프레임 기반 + 테마 + 애니메이션)
+    # 커스텀 CSS (와이어프레임 기반 + 테마 + 애니메이션 + 반응형 + 접근성)
     custom_css = f"""
     {animation_css.get_animations()}
+    {responsive_design.get_responsive_css()}
+    {accessibility_features.get_accessibility_css()}
     
     /* 전체 컨테이너 */
     .gradio-container {{
@@ -213,18 +216,26 @@ def create_main_layout() -> Tuple[gr.Blocks, Dict[str, Any]]:
     
     with gr.Blocks(
         title=settings.app_name,
-        theme=theme_manager.get_theme("light"),
+        theme=theme_manager.get_theme(settings.default_theme),
         css=custom_css,
-        head="""
+        head=f"""
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="description" content="AI 데이터 분석 비서 - 자연어로 묻고, AI가 분석하고, 시각화로 답하다">
+        <meta name="theme-color" content="#667eea">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="{settings.app_name}">
+        {device_detection.get_device_optimization_script()}
         """
     ) as app:
+        
+        # 접근성 건너뛰기 링크
+        accessibility_features.create_skip_links()
         
         # 헤더
         components['header'] = create_header()
         
-        # 메인 컨텐츠 영역
+        # 메인 컨텐츠 영역 (접근성 식별자 추가)
         with gr.Row(elem_classes="main-content"):
             # 왼쪽: 채팅 영역 (2/3)
             with gr.Column(scale=2, elem_classes="chat-column"):
@@ -238,6 +249,9 @@ def create_main_layout() -> Tuple[gr.Blocks, Dict[str, Any]]:
         
         # 키보드 단축키 가이드
         keyboard_shortcuts.create_shortcuts_guide()
+        
+        # 접근성 컨트롤 패널
+        accessibility_features.create_accessibility_controls()
         
         # 푸터
         components['footer'] = _create_footer()
@@ -284,7 +298,8 @@ def _create_input_section() -> Dict[str, Any]:
                 show_label=False,
                 container=False,
                 scale=4,
-                elem_classes="message-input"
+                elem_classes="message-input",
+                elem_id="chat-input"  # 접근성을 위한 ID 추가
             )
             
             with gr.Column(scale=1, min_width=120):
@@ -325,7 +340,8 @@ def _create_file_upload_section() -> Dict[str, Any]:
                 file_count="multiple",
                 show_label=False,
                 container=False,
-                elem_classes="file-upload"
+                elem_classes="file-upload",
+                elem_id="file-upload"  # 접근성을 위한 ID 추가
             )
             
             gr.HTML("""
@@ -361,7 +377,7 @@ def _create_settings_section() -> Dict[str, Any]:
     """설정 섹션 생성"""
     components = {}
     
-    with gr.Group(elem_classes="sidebar-panel"):
+    with gr.Group(elem_classes="sidebar-panel", elem_id="settings"):  # 접근성을 위한 ID 추가
         gr.HTML("""
         <div class="panel-header">
             ⚙️ 설정
