@@ -14,6 +14,7 @@ from app.ui.responsive import responsive_design, accessibility_features, device_
 from app.ui.ai_status import ai_status_panel, ai_settings_panel, conversation_analytics
 from app.ui.user_guide import user_guide, tutorial_creator
 from app.ui.sql_interface import sql_interface
+from app.ui.file_interface import file_interface
 
 
 def create_main_layout() -> Tuple[gr.Blocks, Dict[str, Any]]:
@@ -249,9 +250,13 @@ def create_main_layout() -> Tuple[gr.Blocks, Dict[str, Any]]:
                         components.update(_create_chat_section())
                         components.update(_create_input_section())
                     
-                    # SQL 질의 탭 (새로 추가)
+                    # SQL 질의 탭
                     sql_components = sql_interface.create_sql_interface()
                     components.update(sql_components)
+                    
+                    # 파일 분석 탭 (새로 추가)
+                    file_components = file_interface.create_file_interface()
+                    components.update(file_components)
             
             # 오른쪽: 사이드바 (1/3) 
             with gr.Column(scale=1, elem_classes="sidebar-column"):

@@ -13,6 +13,7 @@ from app.ui.layouts import create_main_layout
 from app.ui.handlers import chat_handler, file_handler, settings_handler
 from app.ui.ai_status import ai_status_panel, ai_settings_panel
 from app.ui.sql_interface import sql_interface
+from app.ui.file_interface import file_interface
 
 # 로깅 설정
 setup_logging()
@@ -193,6 +194,36 @@ def _setup_event_handlers(components: dict):
                 fn=create_example_handler(components[btn_key].value),
                 outputs=[components['sql_question']]
             )
+    
+    # 파일 업로드 인터페이스 이벤트
+    if 'file_upload' in components:
+        components['file_upload'].upload(
+            fn=file_interface.handle_file_upload,
+            inputs=[components['file_upload']],
+            outputs=[
+                components['upload_status'],
+                components['file_list'],
+                components['data_preview'],
+                components['file_info']
+            ]
+        )
+    
+    if 'refresh_files_btn' in components:
+        components['refresh_files_btn'].click(
+            fn=file_interface.refresh_file_list,
+            outputs=[components['file_list']]
+        )
+    
+    if 'clear_files_btn' in components:
+        components['clear_files_btn'].click(
+            fn=file_interface.clear_all_files,
+            outputs=[
+                components['upload_status'],
+                components['file_list'],
+                components['data_preview'],
+                components['file_info']
+            ]
+        )
 
 
 def main():
