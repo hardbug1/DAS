@@ -6,7 +6,8 @@
 
 import os
 from typing import List, Optional
-from pydantic import BaseSettings, Field
+from pydantic_settings import BaseSettings
+from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -19,19 +20,19 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
     
     # OpenAI API 설정
-    openai_api_key: str = Field(..., env="OPENAI_API_KEY")
+    openai_api_key: str = Field(default="your-openai-api-key-here", env="OPENAI_API_KEY")
     openai_model: str = Field(default="gpt-4", env="OPENAI_MODEL")
     
     # 데이터베이스 설정
-    database_url: str = Field(..., env="DATABASE_URL")
+    database_url: str = Field(default="sqlite:///./ai_data_analyst.db", env="DATABASE_URL")
     test_database_url: Optional[str] = Field(None, env="TEST_DATABASE_URL")
     
     # Redis 설정
     redis_url: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
     
     # 보안 설정
-    jwt_secret: str = Field(..., env="JWT_SECRET")
-    encryption_key: str = Field(..., env="ENCRYPTION_KEY")
+    jwt_secret: str = Field(default="your-secret-key-change-in-production", env="JWT_SECRET")
+    encryption_key: str = Field(default="your-encryption-key-change-in-production", env="ENCRYPTION_KEY")
     
     # 파일 업로드 설정
     max_file_size: int = Field(default=104857600, env="MAX_FILE_SIZE")  # 100MB
