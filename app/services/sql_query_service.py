@@ -8,8 +8,9 @@ import asyncio
 from typing import List, Dict, Any, Tuple, Optional
 from sqlalchemy import text
 from langchain_community.utilities import SQLDatabase
-from langchain_experimental.sql import SQLDatabaseChain
-from langchain.prompts import PromptTemplate
+from langchain_community.agent_toolkits import create_sql_agent
+from langchain_core.prompts import PromptTemplate
+from langchain_core.messages import HumanMessage
 import pandas as pd
 import structlog
 from datetime import datetime
@@ -29,12 +30,12 @@ class SQLQueryService:
     def __init__(self):
         self.db_engine = engine
         self.langchain_db = None
-        self.sql_chain = None
+        self.sql_agent = None
         self.schema_info = DatabaseSchemaInfo()
-        self._initialize_sql_chain()
+        self._initialize_sql_agent()
     
-    def _initialize_sql_chain(self):
-        """SQL 체인 초기화"""
+    def _initialize_sql_agent(self):
+        """SQL 에이전트 초기화"""
         try:
             # LangChain SQLDatabase 초기화
             self.langchain_db = SQLDatabase.from_uri(
@@ -42,27 +43,23 @@ class SQLQueryService:
                 include_tables=["companies", "customers", "products", "orders", "order_items", "sales"]
             )
             
-            # 커스텀 프롬프트 설정
-            sql_prompt = self._create_sql_prompt()
-            
-            # SQL 체인 생성
+            # SQL 에이전트 생성
             if langchain_manager and langchain_manager.llm:
-                self.sql_chain = SQLDatabaseChain.from_llm(
+                self.sql_agent = create_sql_agent(
                     llm=langchain_manager.get_llm(),
                     db=self.langchain_db,
-                    prompt=sql_prompt,
                     verbose=True,
-                    return_intermediate_steps=True,
-                    use_query_checker=True
+                    agent_type="openai-tools",
+                    handle_parsing_errors=True
                 )
                 
-                logger.info("SQL 체인 초기화 완료")
+                logger.info("SQL 에이전트 초기화 완료")
             else:
                 logger.warning("LangChain 관리자가 초기화되지 않음 - SQL 기능 제한")
                 
         except Exception as e:
-            error_handler.handle_error(e, "SQL 체인 초기화")
-            logger.error("SQL 체인 초기화 실패", error=str(e))
+            error_handler.handle_error(e, "SQL 에이전트 초기화")
+            logger.error("SQL 에이전트 초기화 실패", error=str(e))
     
     def _create_sql_prompt(self) -> PromptTemplate:
         """SQL 생성용 커스텀 프롬프트 생성"""
@@ -105,7 +102,7 @@ SQL 쿼리:
         Returns:
             Dict containing query results, SQL, and metadata
         """
-        if not self.sql_chain:
+        if not self.sql_agent:
             return {
                 "success": False,
                 "error": "SQL 서비스가 초기화되지 않았습니다. OpenAI API 키를 확인해주세요.",
@@ -119,28 +116,26 @@ SQL 쿼리:
         try:
             logger.info("자연어 SQL 질의 시작", question=question)
             
-            # 프롬프트에 필요한 정보 준비
-            schema_info = self.schema_info.get_schema_for_llm()
-            relationships = self.schema_info.get_relationships_info()
-            sample_queries = self._format_sample_queries()
+            # 스키마 정보를 포함한 프롬프트 생성
+            enhanced_question = self._enhance_question_with_context(question)
             
-            # SQL 체인 실행
+            # SQL 에이전트 실행
             result = await asyncio.to_thread(
-                self.sql_chain.run,
-                input=question,
-                schema_info=schema_info,
-                relationships=relationships,
-                sample_queries=sample_queries
+                self.sql_agent.invoke,
+                {"input": enhanced_question}
             )
             
-            # 중간 단계에서 SQL 추출
-            if hasattr(self.sql_chain, 'intermediate_steps') and self.sql_chain.intermediate_steps:
-                sql_query = self._extract_sql_from_steps(self.sql_chain.intermediate_steps)
-            else:
-                sql_query = "SQL 추출 실패"
+            # 결과에서 SQL 쿼리와 응답 추출
+            sql_query = self._extract_sql_from_agent_result(result)
+            answer = result.get("output", "응답을 생성할 수 없습니다.")
             
-            # 결과 검증 및 포맷팅
-            formatted_result = self._format_query_result(result, sql_query)
+            # 실제 데이터 조회 (필요시)
+            data_result = None
+            if sql_query and sql_query != "SQL 추출 실패":
+                try:
+                    data_result = await self._execute_extracted_sql(sql_query)
+                except Exception as e:
+                    logger.warning("추출된 SQL 실행 실패", error=str(e))
             
             execution_time = (datetime.now() - start_time).total_seconds()
             
@@ -150,7 +145,11 @@ SQL 쿼리:
             
             return {
                 "success": True,
-                "data": formatted_result,
+                "data": {
+                    "answer": answer,
+                    "table_data": data_result,
+                    "type": "agent_response"
+                },
                 "sql": sql_query,
                 "execution_time": execution_time,
                 "question": question
@@ -264,18 +263,81 @@ SQL 쿼리:
         
         return True
     
-    def _extract_sql_from_steps(self, steps: List) -> str:
-        """중간 단계에서 SQL 쿼리 추출"""
+    def _enhance_question_with_context(self, question: str) -> str:
+        """질문에 스키마 컨텍스트 추가"""
+        schema_info = self.schema_info.get_schema_for_llm()
+        relationships = self.schema_info.get_relationships_info()
+        sample_queries = self._format_sample_queries()
+        
+        enhanced = f"""
+질문: {question}
+
+데이터베이스 스키마 정보:
+{schema_info}
+
+테이블 관계:
+{relationships}
+
+참고할 샘플 쿼리:
+{sample_queries}
+
+위 정보를 참고하여 정확한 SQL 쿼리를 작성하고 결과를 분석해주세요.
+한국어로 결과를 요약하고 인사이트를 제공해주세요.
+"""
+        return enhanced
+    
+    def _extract_sql_from_agent_result(self, result: Dict[str, Any]) -> str:
+        """에이전트 결과에서 SQL 쿼리 추출"""
         try:
-            for step in steps:
-                if isinstance(step, dict) and 'sql_cmd' in step:
-                    return step['sql_cmd']
-                elif isinstance(step, str) and 'select' in step.lower():
-                    return step
+            # 에이전트 결과에서 SQL 찾기
+            output = result.get("output", "")
+            
+            # SQL 패턴 검색
+            import re
+            sql_pattern = r'```sql\n(.*?)\n```'
+            sql_matches = re.findall(sql_pattern, output, re.DOTALL | re.IGNORECASE)
+            
+            if sql_matches:
+                return sql_matches[0].strip()
+            
+            # 다른 패턴 시도
+            select_pattern = r'(SELECT.*?;?)'
+            select_matches = re.findall(select_pattern, output, re.DOTALL | re.IGNORECASE)
+            
+            if select_matches:
+                return select_matches[0].strip()
             
             return "SQL 추출 실패"
-        except Exception:
+        except Exception as e:
+            logger.warning("SQL 추출 오류", error=str(e))
             return "SQL 추출 오류"
+    
+    async def _execute_extracted_sql(self, sql_query: str) -> Dict[str, Any]:
+        """추출된 SQL 쿼리 실행"""
+        try:
+            with SessionLocal() as db:
+                result = db.execute(text(sql_query))
+                
+                if result.returns_rows:
+                    columns = list(result.keys())
+                    rows = result.fetchall()
+                    
+                    df = pd.DataFrame(rows, columns=columns)
+                    
+                    return {
+                        "columns": columns,
+                        "data": df.to_dict('records'),
+                        "row_count": len(df),
+                        "summary": self._generate_result_summary(df)
+                    }
+                else:
+                    return {
+                        "message": "쿼리가 성공적으로 실행되었습니다.",
+                        "affected_rows": result.rowcount
+                    }
+        except Exception as e:
+            logger.error("SQL 실행 오류", error=str(e))
+            return {"error": f"SQL 실행 오류: {str(e)}"}
     
     def _format_sample_queries(self) -> str:
         """샘플 쿼리를 문자열로 포맷팅"""

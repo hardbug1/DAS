@@ -12,6 +12,7 @@ from app.config.database import test_database_connection, create_tables
 from app.ui.layouts import create_main_layout
 from app.ui.handlers import chat_handler, file_handler, settings_handler
 from app.ui.ai_status import ai_status_panel, ai_settings_panel
+from app.ui.sql_interface import sql_interface
 
 # 로깅 설정
 setup_logging()
@@ -128,6 +129,66 @@ def _setup_event_handlers(components: dict):
             fn=ai_settings_panel.clear_ai_memory,
             outputs=[components['test_result']]
         )
+    
+    # SQL 인터페이스 이벤트
+    if 'sql_submit_btn' in components:
+        components['sql_submit_btn'].click(
+            fn=sql_interface.execute_natural_language_query,
+            inputs=[components['sql_question']],
+            outputs=[
+                components['sql_result'],
+                components['executed_sql'],
+                components['result_dataframe'],
+                components['executed_sql'],  # visibility
+                components['result_dataframe']  # visibility
+            ]
+        )
+    
+    if 'direct_sql_btn' in components:
+        components['direct_sql_btn'].click(
+            fn=sql_interface.execute_direct_sql,
+            inputs=[components['direct_sql']],
+            outputs=[
+                components['sql_result'],
+                components['executed_sql'],
+                components['result_dataframe'],
+                components['executed_sql'],  # visibility
+                components['result_dataframe']  # visibility
+            ]
+        )
+    
+    if 'sql_clear_btn' in components:
+        components['sql_clear_btn'].click(
+            fn=sql_interface.clear_interface,
+            outputs=[
+                components['sql_question'],
+                components['sql_result'],
+                components['executed_sql'],
+                components['result_dataframe'],
+                components['executed_sql'],  # visibility
+                components['result_dataframe']  # visibility
+            ]
+        )
+    
+    if 'db_connection_btn' in components and 'db_status' in components:
+        components['db_connection_btn'].click(
+            fn=sql_interface.test_database_connection,
+            outputs=[components['db_status']]
+        )
+    
+    # SQL 예시 질문 버튼들
+    for i in range(8):  # 8개의 예시 질문
+        btn_key = f'example_btn_{i}'
+        if btn_key in components:
+            def create_example_handler(btn_text):
+                def handler():
+                    return btn_text
+                return handler
+            
+            components[btn_key].click(
+                fn=create_example_handler(components[btn_key].value),
+                outputs=[components['sql_question']]
+            )
 
 
 def main():

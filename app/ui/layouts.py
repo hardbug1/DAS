@@ -13,6 +13,7 @@ from app.ui.themes import theme_manager, animation_css
 from app.ui.responsive import responsive_design, accessibility_features, device_detection
 from app.ui.ai_status import ai_status_panel, ai_settings_panel, conversation_analytics
 from app.ui.user_guide import user_guide, tutorial_creator
+from app.ui.sql_interface import sql_interface
 
 
 def create_main_layout() -> Tuple[gr.Blocks, Dict[str, Any]]:
@@ -239,10 +240,18 @@ def create_main_layout() -> Tuple[gr.Blocks, Dict[str, Any]]:
         
         # 메인 컨텐츠 영역 (접근성 식별자 추가)
         with gr.Row(elem_classes="main-content"):
-            # 왼쪽: 채팅 영역 (2/3)
-            with gr.Column(scale=2, elem_classes="chat-column"):
-                components.update(_create_chat_section())
-                components.update(_create_input_section())
+            # 왼쪽: 메인 기능 영역 (2/3)
+            with gr.Column(scale=2, elem_classes="main-function-column"):
+                # 메인 기능 탭
+                with gr.Tabs():
+                    # AI 채팅 탭 (기존)
+                    with gr.Tab("💬 AI 채팅"):
+                        components.update(_create_chat_section())
+                        components.update(_create_input_section())
+                    
+                    # SQL 질의 탭 (새로 추가)
+                    sql_components = sql_interface.create_sql_interface()
+                    components.update(sql_components)
             
             # 오른쪽: 사이드바 (1/3) 
             with gr.Column(scale=1, elem_classes="sidebar-column"):
